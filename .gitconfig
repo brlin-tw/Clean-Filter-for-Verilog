@@ -2,3 +2,6 @@
 # Documentation: git-config manpage
 [filter "bash"]
 	clean = "\"Git Clean and Smudge Filters/Clean Filter for GNU Bash Script/Clean Filter for GNU Bash Script.bash\""
+
+[filter "verilog"]
+	clean = "clean-verilog.iStyle.bash"
