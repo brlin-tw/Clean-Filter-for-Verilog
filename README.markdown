@@ -26,4 +26,5 @@ This is the default cleaner.
 Use `--cleaner istyle` to enable this cleaner.
 
 ## License
+
 GNU GPLv3+ 
