@@ -58,7 +58,7 @@ init(){
 		--symbolic\
 		--relative\
 		--force\
-		"Git Hooks/Git Pre-commit Hook for GNU Bash Projects/Pre-commit Script.bash"\
+		"${RUNTIME_EXECUTABLE_DIRECTORY}/Git Hooks/Git Pre-commit Hook for GNU Bash Projects/Pre-commit Script.bash"\
 		"${GIT_DIR}/hooks/pre-commit"
 	git submodule update --init --recursive
 
