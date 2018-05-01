@@ -7,3 +7,8 @@
 	url = https://github.com/Lin-Buo-Ren/Git_Pre-commit_Hook_for_GNU_Bash_Projects.git
 	fetchRecurseSubmodules = no
 	ignore = all
+[submodule "Linters/GNU Bash Automatic Checking Program for Git Projects"]
+	path = Linters/GNU Bash Automatic Checking Program for Git Projects
+	url = https://github.com/Lin-Buo-Ren/GNU-Bash-Automatic-Checking-Program-for-Git-Projects.git
+	fetchRecurseSubmodules = no
+	ignore = all

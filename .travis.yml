@@ -25,11 +25,11 @@ addons:
     packages:
       - realpath      # Merged to GNU Coreutils in Ubuntu 16.04
 
-before_install: true
+before_install:
+  - git submodule init 'Linters/GNU Bash Automatic Checking Program for Git Projects'
+  - git submodule update --depth=1
 
-before_script: true
+before_script:
+  - ./'Linters/GNU Bash Automatic Checking Program for Git Projects/GNU Bash Automatic Checking Program for Git Projects.bash'
 
-script:
-  #- git ls-files -z \*.bash | xargs --max-args=1 --verbose --null -- shellcheck
-  # The following command will be dropped in favor with the above one after Travis CI environment contains ShellCheck >=0.4.5, which fixes the bug that triggers SC2148 even when `shell` directive is used
-  - git ls-files -z \*.bash | xargs --max-args=1 --verbose --null -- shellcheck --shell=bash
+script: true
