@@ -27,7 +27,8 @@ addons:
 
 before_install:
   - git submodule init 'Linters/GNU Bash Automatic Checking Program for Git Projects' 'Continuous Integration/Utilities for Travis CI'
-  - git submodule update --depth=1
+  # Don't fetch too less history as it will trigger "Server does not allow request for unadvertised object" error
+  - git submodule update --depth=30
 
 install:
   - ./"Continuous Integration/Utilities for Travis CI/Setup ShellCheck's Latest Release without Re-building.bash"
