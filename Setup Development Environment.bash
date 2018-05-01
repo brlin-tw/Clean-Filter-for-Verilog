@@ -1,54 +1,88 @@
 #!/usr/bin/env bash
-#shellcheck disable=SC2034
-# Comments prefixed by BASHDOC: are hints to specific GNU Bash Manual's section:
-# https://www.gnu.org/software/bash/manual/
+# shellcheck disable=SC2034
+
+# Setup the environment for developing the project
+# 林博仁 © 2017, 2018
 
 ## Makes debuggers' life easier - Unofficial Bash Strict Mode
-## http://redsymbol.net/articles/unofficial-bash-strict-mode/
 ## BASHDOC: Shell Builtin Commands - Modifying Shell Behavior - The Set Builtin
-### Exit prematurely if a command's return value is not 0(with some exceptions), triggers ERR trap if available.
 set -o errexit
-
-### Trap on `ERR' is inherited by shell functions, command substitutions, and subshell environment as well
 set -o errtrace
-
-### Exit prematurely if an unset variable is expanded, causing parameter expansion failure.
 set -o nounset
-
-### Let the return value of a pipeline be the value of the last (rightmost) command to exit with a non-zero status
 set -o pipefail
 
+## Runtime Dependencies Checking
+declare\
+	runtime_dependency_checking_result=still-pass\
+	required_software
+
+for required_command in \
+	basename \
+	dirname \
+	realpath; do
+	if ! command -v "${required_command}" &>/dev/null; then
+		runtime_dependency_checking_result=fail
+
+		case "${required_command}" in
+			basename \
+			|dirname \
+			|ln \
+			|realpath)
+				required_software='GNU Coreutils'
+				;;
+			git)
+				required_software='Git'
+				;;
+			*)
+				required_software="${required_command}"
+				;;
+		esac
+
+		printf -- \
+			'Error: This program requires "%s" to be installed and its executables in the executable searching paths.\n' \
+			"${required_software}" 1>&2
+		unset required_software
+	fi
+done; unset required_command required_software
+
+if [ "${runtime_dependency_checking_result}" = fail ]; then
+	printf -- \
+		'Error: Runtime dependency checking fail, the progrom cannot continue.\n' \
+		1>&2
+	exit 1
+fi; unset runtime_dependency_checking_result
+
 ## Non-overridable Primitive Variables
-##
-## BashFAQ/How do I determine the location of my script? I want to read some config files from the same place. - Greg's Wiki
-## http://mywiki.wooledge.org/BashFAQ/028
-RUNTIME_EXECUTABLE_FILENAME="$(basename "${BASH_SOURCE[0]}")"
-declare -r RUNTIME_EXECUTABLE_FILENAME
-declare -r RUNTIME_EXECUTABLE_NAME="${RUNTIME_EXECUTABLE_FILENAME%.*}"
-RUNTIME_EXECUTABLE_DIRECTORY="$(dirname "$(realpath --strip "${0}")")"
-declare -r RUNTIME_EXECUTABLE_DIRECTORY
-declare -r RUNTIME_EXECUTABLE_PATH_ABSOLUTE="${RUNTIME_EXECUTABLE_DIRECTORY}/${RUNTIME_EXECUTABLE_FILENAME}"
-declare -r RUNTIME_EXECUTABLE_PATH_RELATIVE="${0}"
-declare -r RUNTIME_COMMAND_BASE="${RUNTIME_COMMAND_BASE:-${0}}"
+## BASHDOC: Shell Variables » Bash Variables
+## BASHDOC: Basic Shell Features » Shell Parameters » Special Parameters
+if [ -v 'BASH_SOURCE[0]' ]; then
+	RUNTIME_EXECUTABLE_PATH="$(realpath --strip "${BASH_SOURCE[0]}")"
+	RUNTIME_EXECUTABLE_FILENAME="$(basename "${RUNTIME_EXECUTABLE_PATH}")"
+	RUNTIME_EXECUTABLE_NAME="${RUNTIME_EXECUTABLE_FILENAME%.*}"
+	RUNTIME_EXECUTABLE_DIRECTORY="$(dirname "${RUNTIME_EXECUTABLE_PATH}")"
+	RUNTIME_COMMANDLINE_BASECOMMAND="${0}"
+	declare -r \
+		RUNTIME_EXECUTABLE_FILENAME \
+		RUNTIME_EXECUTABLE_DIRECTORY \
+		RUNTIME_EXECUTABLE_PATHABSOLUTE \
+		RUNTIME_COMMANDLINE_BASECOMMAND
+fi
+declare -ar RUNTIME_COMMANDLINE_ARGUMENTS=("${@}")
 
-trap_errexit(){
-	printf "An error occurred and the script is prematurely aborted\n" 1>&2
-	return 0
-}; declare -fr trap_errexit; trap trap_errexit ERR
-
-trap_exit(){
-	return 0
-}; declare -fr trap_exit; trap trap_exit EXIT
-
-check_runtime_dependencies(){
-	for a_command in git ln; do
-		if ! command -v "${a_command}" &>/dev/null; then
-			printf "%s: %s: Error: \"%s\" command not found, check your runtime dependencies\n" "${RUNTIME_EXECUTABLE_NAME}" "${FUNCNAME[0]}" "${a_command}" 1>&2
-		fi
-	done
-}; declare -fr check_runtime_dependencies
-## init function: program entrypoint
+## init function: entrypoint of main program
+## This function is called near the end of the file,
+## with the script's command-line parameters as arguments
 init(){
+	if ! process_commandline_arguments; then
+		printf -- \
+			'Error: Invalid command-line parameters.\n' \
+			1>&2
+
+		printf '\n' # separate error message and help message
+		print_help
+		exit 1
+	fi
+
 	cd "${RUNTIME_EXECUTABLE_DIRECTORY}"
 	git submodule init \
 		'Git Clean and Smudge Filters/Clean Filter for GNU Bash Scripts' \
@@ -61,21 +95,109 @@ init(){
 	export GIT_WORK_TREE="${RUNTIME_EXECUTABLE_DIRECTORY}"
 
 	git config --local include.path ../.gitconfig
-	ln\
-		--verbose\
-		--symbolic\
-		--relative\
-		--force\
-		"${RUNTIME_EXECUTABLE_DIRECTORY}/Git Hooks/Git Pre-commit Hook for GNU Bash Projects/Pre-commit Script.bash"\
+	ln \
+		--verbose \
+		--symbolic \
+		--relative \
+		--force \
+		"${GIT_WORK_TREE}/Git Hooks/Git Pre-commit Hook for GNU Bash Projects/Pre-commit Script.bash" \
 		"${GIT_DIR}/hooks/pre-commit"
 
-	printf "\nDevelopment environment setup done, happy hacking!\n"
+	printf '\nDevelopment environment setup done, happy hacking!\n'
 	exit 0
 }; declare -fr init
+
+print_help(){
+	printf \
+		'Currently no help messages are available for this program\n' \
+		1>&2
+	return 0
+}; declare -fr print_help;
+
+process_commandline_arguments() {
+	if [ "${#RUNTIME_COMMANDLINE_ARGUMENTS[@]}" -eq 0 ]; then
+		return 0
+	fi
+
+	# Modifyable parameters for parsing by consuming
+	local -a parameters=("${RUNTIME_COMMANDLINE_ARGUMENTS[@]}")
+
+	# Normally we won't want debug traces to appear during parameter parsing, so we add this flag and defer its activation till returning(Y: Do debug)
+	local enable_debug=N
+
+	while true; do
+		if [ "${#parameters[@]}" -eq 0 ]; then
+			break
+		else
+			case "${parameters[0]}" in
+				--help \
+				|-h)
+					print_help;
+					exit 0
+					;;
+				--debug \
+				|-d)
+					enable_debug=Y
+					;;
+				*)
+					printf -- \
+						'%s: Error: Unknown command-line argument "%s"\n' \
+						"${FUNCNAME[0]}" \
+						"${parameters[0]}" \
+						>&2
+					return 1
+					;;
+			esac
+			# shift array by 1 = unset 1st then repack
+			unset 'parameters[0]'
+			if [ "${#parameters[@]}" -ne 0 ]; then
+				parameters=("${parameters[@]}")
+			fi
+		fi
+	done
+
+	if [ "${enable_debug}" = Y ]; then
+		trap 'trap_return "${FUNCNAME[0]}"' RETURN
+		set -o xtrace
+	fi
+	return 0
+}; declare -fr process_commandline_arguments
+
+## Traps: Functions that are triggered when certain condition occurred
+## Shell Builtin Commands » Bourne Shell Builtins » trap
+trap_errexit(){
+	printf \
+		'An error occurred and the script is prematurely aborted\n' \
+		1>&2
+	return 0
+}; declare -fr trap_errexit; trap trap_errexit ERR
+
+trap_exit(){
+	return 0
+}; declare -fr trap_exit; trap trap_exit EXIT
+
+trap_return(){
+	local returning_function="${1}"
+
+	printf \
+		'DEBUG: %s: returning from %s\n' \
+		"${FUNCNAME[0]}" \
+		"${returning_function}" \
+		1>&2
+}; declare -fr trap_return
+
+trap_interrupt(){
+	printf '\n' # Separate previous output
+	printf \
+		'Recieved SIGINT, script is interrupted.' \
+		1>&2
+	return 1
+}; declare -fr trap_interrupt; trap trap_interrupt INT
+
 init "${@}"
 
 ## This script is based on the GNU Bash Shell Script Template project
 ## https://github.com/Lin-Buo-Ren/GNU-Bash-Shell-Script-Template
 ## and is based on the following version:
-declare -r META_BASED_ON_GNU_BASH_SHELL_SCRIPT_TEMPLATE_VERSION="v1.24.1"
+## GNU_BASH_SHELL_SCRIPT_TEMPLATE_VERSION="v3.0.12"
 ## You may rebase your script to incorporate new features and fixes from the template
