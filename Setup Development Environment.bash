@@ -49,6 +49,14 @@ check_runtime_dependencies(){
 }; declare -fr check_runtime_dependencies
 ## init function: program entrypoint
 init(){
+	cd "${RUNTIME_EXECUTABLE_DIRECTORY}"
+	git submodule init \
+		'Git Clean and Smudge Filters/Clean Filter for GNU Bash Scripts' \
+		'Git Hooks/Git Pre-commit Hook for GNU Bash Projects' \
+		'Linters/GNU Bash Automatic Checking Program for Git Projects'
+	git submodule update \
+		--depth=1
+
 	export GIT_DIR="${RUNTIME_EXECUTABLE_DIRECTORY}/.git"
 	export GIT_WORK_TREE="${RUNTIME_EXECUTABLE_DIRECTORY}"
 
@@ -60,7 +68,6 @@ init(){
 		--force\
 		"${RUNTIME_EXECUTABLE_DIRECTORY}/Git Hooks/Git Pre-commit Hook for GNU Bash Projects/Pre-commit Script.bash"\
 		"${GIT_DIR}/hooks/pre-commit"
-	git submodule update --init --recursive
 
 	printf "\nDevelopment environment setup done, happy hacking!\n"
 	exit 0
