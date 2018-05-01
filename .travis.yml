@@ -26,10 +26,21 @@ addons:
       - realpath      # Merged to GNU Coreutils in Ubuntu 16.04
 
 before_install:
-  - git submodule init 'Linters/GNU Bash Automatic Checking Program for Git Projects'
+  - git submodule init \
+      'Linters/GNU Bash Automatic Checking Program for Git Projects' \
+      'Continuous Integration/Utilities for Travis CI'
   - git submodule update --depth=1
+
+install:
+  - ./"Continuous Integration/Utilities for Travis CI/Setup ShellCheck's Latest Release without Re-building.bash"
+  - PATH="${HOME}/Software/shellcheck-stable:${PATH}"
+  - shellcheck --version
 
 before_script:
   - ./'Linters/GNU Bash Automatic Checking Program for Git Projects/GNU Bash Automatic Checking Program for Git Projects.bash'
 
 script: true
+
+cache:
+  directories:
+    - $HOME/Software

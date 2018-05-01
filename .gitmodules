@@ -12,3 +12,8 @@
 	url = https://github.com/Lin-Buo-Ren/GNU-Bash-Automatic-Checking-Program-for-Git-Projects.git
 	fetchRecurseSubmodules = no
 	ignore = all
+[submodule "Continuous Integration/Utilities for Travis CI"]
+	path = Continuous Integration/Utilities for Travis CI
+	url = https://github.com/Lin-Buo-Ren/Utilities-for-Travis-CI.git
+	fetchRecurseSubmodules = no
+	ignore = all
